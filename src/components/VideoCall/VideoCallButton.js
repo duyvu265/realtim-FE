@@ -3,7 +3,7 @@ import { HiVideoCamera } from "react-icons/hi";
 import VideoCall from './VideoCall';
 
 
-const VideoCallButton = () => {
+const VideoCallButton = (socketConnection) => {
   const [isCalling, setIsCalling] = useState(false);
 
   const handleVideoCallClick = () => {

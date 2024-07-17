@@ -8,39 +8,21 @@ const VideoCall = ({ onEndCall }) => {
   const peerConnectionRef = useRef(null);
 
   useEffect(() => {
-    const checkMediaDevices = async () => {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasCamera = devices.some(device => device.kind === 'videoinput');
-      const hasMicrophone = devices.some(device => device.kind === 'audioinput');
-
-      if (!hasCamera || !hasMicrophone) {
-        toast.error('Thiết bị không hỗ trợ camera hoặc micro.');
-        onEndCall();
-        return;
-      }
-
-      startVideoCall();
-    };
-
     const startVideoCall = async () => {
       try {
         const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localVideoRef.current.srcObject = localStream;
 
-        // Thiết lập WebRTC connection ở đây
         const pc = new RTCPeerConnection();
         peerConnectionRef.current = pc;
 
-        // Thiết lập timeout để tự động ngắt cuộc gọi nếu không được trả lời sau 30 giây
         callTimeoutRef.current = setTimeout(() => {
-          toast.error('Cuộc gọi không được trả lời. Tự động ngắt.');
+          toast.error('The call was not answered. Automatically ending.');
           onEndCall();
-        }, 30000); // 30 giây = 30000 milliseconds
+        }, 30000); 
 
-        // Đảm bảo rằng onEndCall sẽ được gọi khi video call kết thúc
         pc.oniceconnectionstatechange = () => {
           if (pc.iceConnectionState === 'connected') {
-            // Cuộc gọi đã được trả lời, hủy bỏ timeout
             clearTimeout(callTimeoutRef.current);
           }
           if (pc.iceConnectionState === 'disconnected') {
@@ -48,14 +30,11 @@ const VideoCall = ({ onEndCall }) => {
           }
         };
 
-        // Xử lý ICE candidate
         pc.onicecandidate = event => {
           if (event.candidate) {
-            // Gửi ICE candidate đến peer
           }
         };
 
-        // Xử lý track của remote stream
         pc.ontrack = event => {
           remoteVideoRef.current.srcObject = event.streams[0];
         };
@@ -64,9 +43,27 @@ const VideoCall = ({ onEndCall }) => {
           pc.addTrack(track, localStream);
         });
 
-        // Tạo offer và xử lý signaling ở đây
       } catch (error) {
-        toast.error('Không thể truy cập camera và micro.');
+        toast.error('Failed to access camera and microphone.');
+        onEndCall();
+      }
+    };
+
+    const checkMediaDevices = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasCamera = devices.some(device => device.kind === 'videoinput');
+        const hasMicrophone = devices.some(device => device.kind === 'audioinput');
+
+        if (!hasCamera || !hasMicrophone) {
+          toast.error('Device does not support camera or microphone.');
+          onEndCall();
+          return;
+        }
+
+        startVideoCall();
+      } catch (error) {
+        toast.error('Failed to access camera and microphone.');
         onEndCall();
       }
     };
@@ -84,6 +81,8 @@ const VideoCall = ({ onEndCall }) => {
       if (pc) {
         pc.close();
       }
+
+      clearTimeout(callTimeoutRef.current);
     };
   }, [onEndCall]);
 

@@ -12,7 +12,9 @@ import { IoMdSend } from 'react-icons/io';
 import moment from 'moment';
 import CallCard from './CallCard';
 import VideoCallButton from './VideoCall/VideoCallButton';
-import AudioCallButton from './Call/CallButton';
+import useWebRTC from './Call/useWebRTC';
+import AudioCallButton from './Call/AudioCallButton';
+import toast from 'react-hot-toast';
 
 const MessagePage = () => {
   const params = useParams();
@@ -34,14 +36,15 @@ const MessagePage = () => {
   const [loading, setLoading] = useState(false);
   const [allMessage, setAllMessage] = useState([]);
   const [callHistory, setCallHistory] = useState([]);
+  const [calling, setCalling] = useState(false);
+  const [showReceiverModal, setShowReceiverModal] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
 
   useEffect(() => {
     if (socketConnection) {
-      // Emit events when the user enters the message page and when messages are seen
       socketConnection.emit('message-page', params.userId);
       socketConnection.emit('seen', params.userId);
 
-      // Listen for events from the server when there are messages from other users and new messages
       socketConnection.on('message-user', (data) => {
         setDataUser(data);
       });
@@ -50,10 +53,15 @@ const MessagePage = () => {
         setAllMessage(data);
       });
 
-      // Cleanup event listeners when the component unmounts
+      socketConnection.on('incoming-call', (data) => {
+        setIncomingCall(data);
+        setShowReceiverModal(true);
+      });
+
       return () => {
         socketConnection.off('message-user');
         socketConnection.off('message');
+        socketConnection.off('incoming-call');
       };
     }
   }, [socketConnection, params.userId]);
@@ -82,37 +90,11 @@ const MessagePage = () => {
     }
   };
 
-  const handleStartCall = () => {
-    if (socketConnection) {
-      socketConnection.emit('start_call', params.userId); // Emit start_call event via socket
-    }
-  };
-
-  const handleStopCall = () => {
-    console.log('Ending call...');
-    if (socketConnection) {
-      socketConnection.emit('end_call', params.userId);
-    }
-  };
-
-  const handleMissedCall = (callInfo) => {
-    setCallHistory((prev) => [...prev, { ...callInfo, status: 'missed' }]);
-  };
-
-  const handleCompletedCall = (callInfo) => {
-    setCallHistory((prev) => [...prev, { ...callInfo, status: 'completed' }]);
-  };
-
-  // Combine all messages and call history into one array and sort by time
-  const combinedMessages = [...allMessage, ...callHistory].sort((a, b) => {
-    return new Date(a.createdAt || a.time) - new Date(b.createdAt || b.time);
-  });
-
   const handleUploadImage = async (e) => {
     const file = e.target.files[0];
     setLoading(true);
     try {
-      const uploadPhoto = await uploadFile(file); // Call uploadFile function from helpers/uploadFile
+      const uploadPhoto = await uploadFile(file);
       setMessage((prev) => ({ ...prev, imageUrl: uploadPhoto.url }));
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -134,15 +116,52 @@ const MessagePage = () => {
     const file = e.target.files[0];
     setLoading(true);
     try {
-      const uploadResult = await uploadFile(file); // Call uploadFile function to upload
-      setMessage((prev) => ({ ...prev, videoUrl: uploadResult.url })); // Save the uploaded video URL to the message state
+      const uploadResult = await uploadFile(file);
+      setMessage((prev) => ({ ...prev, videoUrl: uploadResult.url }));
     } catch (error) {
       console.error('Error uploading video:', error);
     } finally {
       setLoading(false);
-      setOpenImageVideoUpload(false); // Close the upload form after completion
+      setOpenImageVideoUpload(false);
     }
   };
+
+  const {
+    localVideoRef,
+    remoteVideoRef,
+    localStream,
+    remoteStream,
+    callAccepted,
+    startCall,
+    acceptCall,
+    endCall,
+    handleToggleMic,
+    isMicMuted,
+  } = useWebRTC(socketConnection, user, dataUser);
+
+  const handleStartCall = () => {
+    setCalling(true);
+    startCall();
+  };
+
+  const handleStopCall = () => {
+    setCalling(false);
+    endCall();
+  };
+
+  const handleCancelCall = () => {
+    setCalling(false);
+    endCall();
+  };
+
+  const handleListen = () => {
+    setShowReceiverModal(false);
+    acceptCall();
+  };
+
+  const combinedMessages = [...allMessage, ...callHistory].sort((a, b) => {
+    return new Date(a.createdAt || a.time) - new Date(b.createdAt || b.time);
+  });
 
   return (
     <div style={{ backgroundImage: `url(${backgroundImage})` }} className='bg-no-repeat bg-cover'>
@@ -162,9 +181,13 @@ const MessagePage = () => {
 
         <div>
           <button className='cursor-pointer hover:text-primary mr-6'>
-            <AudioCallButton onStartCall={handleStartCall} onStopCall={handleStopCall} socket={socketConnection?socketConnection:""} />
+            <AudioCallButton
+              onStartCall={handleStartCall}
+              onStopCall={handleStopCall}
+              socket={socketConnection}
+            />
           </button>
-          <VideoCallButton />
+          <VideoCallButton  socket={socketConnection} />
           <button className='cursor-pointer hover:text-primary mr-6'>
             <HiSearch />
           </button>
@@ -173,7 +196,6 @@ const MessagePage = () => {
           </button>
         </div>
       </header>
-
       <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
         <div className='flex flex-col gap-2 py-2 mx-2'>
           {combinedMessages.map((item, index) => {
@@ -181,9 +203,7 @@ const MessagePage = () => {
               return (
                 <div
                   key={index}
-                  className={`p-1 py-1 rounded w-fit max-w-[280px] md:max-w-sm lg:max-w-md ${
-                    user._id === item?.msgByUserId ? 'ml-auto bg-teal-100' : 'bg-white'
-                  }`}
+                  className={`p-1 py-1 rounded w-fit max-w-[280px] md:max-w-sm lg:max-w-md ${user._id === item?.msgByUserId ? 'ml-auto bg-teal-100' : 'bg-white'}`}
                 >
                   <div className='w-full relative'>
                     {item?.imageUrl && <img src={item?.imageUrl} className='w-full h-full object-scale-down' alt='Uploaded' />}
@@ -198,6 +218,7 @@ const MessagePage = () => {
             }
           })}
         </div>
+
         {message.imageUrl && (
           <div className='w-full h-full sticky bottom-0 bg-slate-700 bg-opacity-30 flex justify-center items-center rounded overflow-hidden'>
             <div className='w-fit p-2 absolute top-0 right-0 cursor-pointer hover:text-red-600' onClick={handleClearUploadImage}>
@@ -208,6 +229,7 @@ const MessagePage = () => {
             </div>
           </div>
         )}
+
         {message.videoUrl && (
           <div className='w-full h-full sticky bottom-0 bg-slate-700 bg-opacity-30 flex justify-center items-center rounded overflow-hidden'>
             <div className='w-fit p-2 absolute top-0 right-0 cursor-pointer hover:text-red-600' onClick={handleClearUploadVideo}>
@@ -218,14 +240,12 @@ const MessagePage = () => {
             </div>
           </div>
         )}
-
-        {loading && (
-          <div className='w-full h-full flex sticky bottom-0 justify-center items-center'>
-            <Loading />
-          </div>
-        )}
       </section>
-
+      {loading && (
+        <div className='w-full h-full flex sticky bottom-0 justify-center items-center'>
+          <Loading />
+        </div>
+      )}
       <section className='h-16 bg-white flex items-center px-4'>
         <div className='relative'>
           <button onClick={() => setOpenImageVideoUpload((prev) => !prev)} className='flex justify-center items-center w-11 h-11 rounded-full hover:bg-primary hover:text-white'>
@@ -241,34 +261,77 @@ const MessagePage = () => {
                   </div>
                   <p>Image</p>
                 </label>
+                <input
+                  type='file'
+                  id='uploadImage'
+                  className='hidden'
+                  onChange={handleUploadImage}
+                />
                 <label htmlFor='uploadVideo' className='flex items-center p-2 px-3 gap-3 hover:bg-slate-200 cursor-pointer'>
-                  <div className='text-purple-500'>
+                  <div className='text-primary'>
                     <FaVideo size={18} />
                   </div>
                   <p>Video</p>
                 </label>
-
-                <input type='file' id='uploadImage' onChange={handleUploadImage} className='hidden' />
-                <input type='file' id='uploadVideo' onChange={handleUploadVideo} className='hidden' />
+                <input
+                  type='file'
+                  id='uploadVideo'
+                  className='hidden'
+                  onChange={handleUploadVideo}
+                />
               </form>
             </div>
           )}
         </div>
-
-        <form className='h-full w-full flex gap-2' onSubmit={handleSendMessage}>
+        <form className='flex flex-grow mx-4' onSubmit={handleSendMessage}>
           <input
             type='text'
-            placeholder='Type here message...'
-            className='py-1 px-4 outline-none w-full h-full'
             name='text'
             value={message.text}
             onChange={handleOnChange}
+            className='flex-grow p-2 border border-gray-300 rounded-l-lg focus:outline-none'
+            placeholder='Type a message...'
           />
-          <button type='submit' className='text-primary hover:text-secondary'>
-            <IoMdSend size={28} />
+          <button
+            type='submit'
+            className='flex items-center justify-center p-2 bg-primary text-white rounded-r-lg hover:bg-primary-dark focus:outline-none'
+          >
+            <IoMdSend size={20} />
           </button>
         </form>
       </section>
+
+      {calling && (
+        <div className='fixed inset-0 flex justify-center items-center bg-black bg-opacity-50'>
+          <div className='bg-white p-4 rounded-lg'>
+            <h2 className='text-lg font-semibold'>{dataUser.name} is calling...</h2>
+            <div className='flex justify-center gap-4 mt-4'>
+              <button className='bg-primary text-white p-2 rounded-lg hover:bg-primary-dark' onClick={handleToggleMic}>
+                {isMicMuted ? 'MicMuted' : 'MicUnmuted'}
+              </button>
+              <button className='bg-red-500 text-white p-2 rounded-lg hover:bg-red-600' onClick={handleCancelCall}>
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReceiverModal && (
+        <div className='fixed inset-0 flex justify-center items-center bg-black bg-opacity-50'>
+          <div className='bg-white p-4 rounded-lg'>
+            <h2 className='text-lg font-semibold'>Incoming Call from {dataUser.name}</h2>
+            <div className='flex justify-center gap-4 mt-4'>
+              <button className='bg-primary text-white p-2 rounded-lg hover:bg-primary-dark' onClick={handleListen}>
+                Listen
+              </button>
+              <button className='bg-red-500 text-white p-2 rounded-lg hover:bg-red-600' onClick={() => setShowReceiverModal(false)}>
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
