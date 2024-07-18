@@ -1,25 +1,23 @@
+// MessagePage.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from './Avatar';
-import { HiSearch, HiDotsVertical } from 'react-icons/hi';
+import { HiDotsVertical, HiSearch } from 'react-icons/hi';
 import { FaAngleLeft } from 'react-icons/fa';
 import uploadFile from '../helpers/uploadFile';
-import { IoClose } from 'react-icons/io5';
 import Loading from './Loading';
 import backgroundImage from '../assets/wallapaper.jpeg';
-import moment from 'moment';
-import CallCard from './CallCard';
 import VideoCallButton from './VideoCall/VideoCallButton';
 import useWebRTC from './Call/useWebRTC';
 import AudioCallButton from './Call/AudioCallButton';
-import toast from 'react-hot-toast';
-import CustomEmojiPicker from './Emoji/CustomEmojiPicker';
 import IncomingCallModal from './CallModal/IncomingCallModal';
 import OutgoingCallModal from './CallModal/OutgoingCallModal';
 import MessagesFooter from './Messages/MessagesFooter';
 import MessagesSection from './Messages/MessagesSection';
 import SearchMessages from './Messages/MessageSearch';
+import toast from 'react-hot-toast';
+import axios from 'axios';
 
 const MessagePage = () => {
   const params = useParams();
@@ -40,12 +38,13 @@ const MessagePage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [allMessage, setAllMessage] = useState([]);
+  const [originalMessages, setOriginalMessages] = useState([]); // State to store original messages
   const [callHistory, setCallHistory] = useState([]);
   const [calling, setCalling] = useState(false);
   const [showReceiverModal, setShowReceiverModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(true);
   const [showSearch, setShowSearch] = useState(false); // State for showing SearchMessages component
   const messagesEndRef = useRef(null);
 
@@ -60,6 +59,7 @@ const MessagePage = () => {
 
       socketConnection.on('message', (data) => {
         setAllMessage(data);
+        setOriginalMessages(data); // Initialize original messages
         setLoadingMessages(false);
       });
 
@@ -176,12 +176,24 @@ const MessagePage = () => {
     return new Date(a.createdAt || a.time) - new Date(b.createdAt || b.time);
   });
 
-  const handleSearchMessages = (searchTerm) => {
-    const filteredMessages = combinedMessages.filter((message) =>
-      message.text.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setAllMessage(filteredMessages);
+
+  const handleSearchMessages = async (searchTerm) => {
+    const URL = `${process.env.REACT_APP_BACKEND_URL}/api/search-messages`; // Construct API URL
+    try {
+      const response = await axios.post(URL, {
+        searchTerm: searchTerm, // Pass searchTerm in the request body
+      });
+      if (response.status === 200) {
+        setAllMessage(response.data.messages); // Update state with messages from response
+      } else {
+        throw new Error('Không thể tìm kiếm tin nhắn.');
+      }
+    } catch (error) {
+      console.error('Error searching messages:', error);
+      toast.error('Đã xảy ra lỗi khi tìm kiếm tin nhắn.');
+    }
   };
+
 
   const onEmojiClick = (e) => {
     setMessage(prevMessage => ({
@@ -210,27 +222,23 @@ const MessagePage = () => {
           </div>
         </div>
         <div>
-          <SearchMessages />
           <button className='cursor-pointer hover:text-primary mr-6'>
             <AudioCallButton
+              size={25}
               onStartCall={handleStartCall}
               onStopCall={handleStopCall}
               socket={socketConnection}
             />
           </button>
           <VideoCallButton socket={socketConnection} />
+          <button className='cursor-pointer hover:text-primary mr-6' onClick={() => setShowSearch(true)}>
+            <HiSearch />
+          </button>
           <button className='cursor-pointer hover:text-primary mr-6'>
             <HiDotsVertical />
           </button>
         </div>
       </header>
-
-      {showSearch && (
-        <SearchMessages
-          handleSearch={handleSearchMessages}
-          onClose={() => setShowSearch(false)}
-        />
-      )}
 
       <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
         <MessagesSection
@@ -240,6 +248,7 @@ const MessagePage = () => {
           message={message}
           handleClearUploadImage={handleClearUploadImage}
           handleClearUploadVideo={handleClearUploadVideo}
+          loadingMessages={loadingMessages}
         />
       </section>
 
@@ -270,6 +279,13 @@ const MessagePage = () => {
           handleStopCall={handleStopCall}
           handleToggleMic={handleToggleMic}
           isMicMuted={isMicMuted}
+        />
+      )}
+
+      {showSearch && (
+        <SearchMessages
+          handleSearchMessages={handleSearchMessages}
+          setShowSearch={setShowSearch} // Pass setShowSearch to SearchMessages component
         />
       )}
     </div>
