@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useRef } from 'react';
+// MessagePage.js
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from './Avatar';
-import { HiSearch, HiDotsVertical, HiMicrophone, HiMicrophoneOff } from 'react-icons/hi';
-import { FaAngleLeft, FaPlus, FaImage, FaVideo, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
+import { HiSearch, HiDotsVertical } from 'react-icons/hi';
+import { FaAngleLeft } from 'react-icons/fa';
 import uploadFile from '../helpers/uploadFile';
 import { IoClose } from 'react-icons/io5';
 import Loading from './Loading';
 import backgroundImage from '../assets/wallapaper.jpeg';
-import { IoMdSend } from 'react-icons/io';
 import moment from 'moment';
 import CallCard from './CallCard';
 import VideoCallButton from './VideoCall/VideoCallButton';
@@ -18,6 +18,9 @@ import toast from 'react-hot-toast';
 import CustomEmojiPicker from './Emoji/CustomEmojiPicker';
 import IncomingCallModal from './CallModal/IncomingCallModal';
 import OutgoingCallModal from './CallModal/OutgoingCallModal';
+import MessagesSection from './Messages/MessagesSection';
+import MessagesFooter from './Messages/MessagesFooter';
+
 
 const MessagePage = () => {
   const params = useParams();
@@ -144,13 +147,7 @@ const MessagePage = () => {
   };
 
   const {
-    localVideoRef,
-    remoteVideoRef,
-    localStream,
-    remoteStream,
-    callAccepted,
     startCall,
-    acceptCall,
     endCall,
     handleToggleMic,
     isMicMuted,
@@ -173,7 +170,6 @@ const MessagePage = () => {
 
   const handleListen = () => {
     setShowReceiverModal(false);
-    acceptCall();
   };
 
   const combinedMessages = [...allMessage, ...callHistory].sort((a, b) => {
@@ -181,9 +177,9 @@ const MessagePage = () => {
   });
 
   const onEmojiClick = (e) => {
-    setMessage(prevMessage => ({
+    setMessage((prevMessage) => ({
       ...prevMessage,
-      text: prevMessage.text + e.emoji
+      text: prevMessage.text + e.emoji,
     }));
   };
 
@@ -224,99 +220,29 @@ const MessagePage = () => {
           </button>
         </div>
       </header>
-      <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
-        <div className='flex flex-col gap-2 py-2 mx-2'>
-          {combinedMessages.map((item, index) => {
-            if (item.text || item.imageUrl || item.videoUrl) {
-              return (
-                <div
-                  key={index}
-                  className={`p-1 py-1 rounded w-fit max-w-[400px] md:max-w-lg lg:max-w-xl ${user._id === item?.msgByUserId ? 'ml-auto bg-teal-100' : 'bg-white'} whitespace-normal break-words`}
-                >
-                  <div className='w-full relative'>
-                    {item?.imageUrl && <img src={item?.imageUrl} className='w-full h-full object-scale-down' alt='Uploaded' />}
-                    {item?.videoUrl && <video src={item.videoUrl} className='w-full h-full object-scale-down' controls muted autoPlay />}
-                  </div>
-                  <p className='px-2'>{item.text}</p>
-                  <p className='text-xs ml-auto w-fit'>{moment(item.createdAt).format('hh:mm')}</p>
-                </div>
 
-              );
-            } else {
-              return <CallCard key={index} call={item} />;
-            }
-          })}
-          <div ref={messagesEndRef} />
-        </div>
+      <MessagesSection
+        combinedMessages={combinedMessages}
+        user={user}
+        messagesEndRef={messagesEndRef}
+        message={message}
+        handleClearUploadImage={handleClearUploadImage}
+        handleClearUploadVideo={handleClearUploadVideo}
+      />
 
-        {message.imageUrl && (
-          <div className='w-full h-full sticky bottom-0 bg-slate-700 bg-opacity-30 flex justify-center items-center rounded overflow-hidden'>
-            <div className='w-fit p-2 absolute top-0 right-0 cursor-pointer hover:text-red-600' onClick={handleClearUploadImage}>
-              <IoClose size={20} />
-            </div>
-            <img src={message.imageUrl} alt='Upload preview' className='w-full h-full object-cover' />
-          </div>
-        )}
+      <MessagesFooter
+        openImageVideoUpload={openImageVideoUpload}
+        setOpenImageVideoUpload={setOpenImageVideoUpload}
+        handleUploadImage={handleUploadImage}
+        handleUploadVideo={handleUploadVideo}
+        showEmojiPicker={showEmojiPicker}
+        setShowEmojiPicker={setShowEmojiPicker}
+        onEmojiClick={onEmojiClick}
+        handleSendMessage={handleSendMessage}
+        message={message}
+        handleOnChange={handleOnChange}
+      />
 
-        {message.videoUrl && (
-          <div className='w-full h-full sticky bottom-0 bg-slate-700 bg-opacity-30 flex justify-center items-center rounded overflow-hidden'>
-            <div className='w-fit p-2 absolute top-0 right-0 cursor-pointer hover:text-red-600' onClick={handleClearUploadVideo}>
-              <IoClose size={20} />
-            </div>
-            <video src={message.videoUrl} className='w-full h-full object-cover' controls autoPlay />
-          </div>
-        )}
-      </section>
-      <footer className='h-16 bg-white flex justify-between items-center'>
-        <div className='w-full flex items-center'>
-          <div className='relative'>
-            <FaPlus size={20} className='cursor-pointer mx-4 hover:text-primary' onClick={() => setOpenImageVideoUpload(!openImageVideoUpload)} />
-            {openImageVideoUpload && (
-              <div className='w-fit h-fit bg-white p-4 rounded shadow-lg absolute bottom-14 left-6 flex items-center'>
-                <div className='flex flex-col items-center gap-2 cursor-pointer hover:text-primary'>
-                  <input type='file' accept='image/*' className='hidden' id='image-upload' onChange={handleUploadImage} />
-                  <label htmlFor='image-upload'>
-                    <FaImage size={20} />
-                  </label>
-                  <p>Ảnh</p>
-                </div>
-                <div className='flex flex-col items-center gap-2 ml-6 cursor-pointer hover:text-primary'>
-                  <input type='file' accept='video/*' className='hidden' id='video-upload' onChange={handleUploadVideo} />
-                  <label htmlFor='video-upload'>
-                    <FaVideo size={20} />
-                  </label>
-                  <p>Video</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <button
-            type='button'
-            className=' text-white h-full p-4 cursor-pointer'
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          >
-            😊
-          </button>
-          {showEmojiPicker && <CustomEmojiPicker onEmojiClick={(e) => {
-            onEmojiClick(e)
-          }} />}
-          <form className='flex items-center w-full h-full' onSubmit={handleSendMessage}>
-            <input
-              type='text'
-              name='text'
-              placeholder='Nhập tin nhắn'
-              className='w-full outline-none border-none pr-6'
-              onChange={handleOnChange}
-              value={message.text}
-              maxLength={2000}
-            />
-            <button type='submit' className='bg-primary text-white h-full p-4 ml-4 mr-4 cursor-pointer'>
-              <IoMdSend />
-            </button>
-          </form>
-
-        </div>
-      </footer>
       {showReceiverModal && (
         <IncomingCallModal
           incomingCall={incomingCall}
@@ -333,8 +259,6 @@ const MessagePage = () => {
           isMicMuted={isMicMuted}
         />
       )}
-
-
     </div>
   );
 };
