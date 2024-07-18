@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from './Avatar';
@@ -15,6 +15,9 @@ import VideoCallButton from './VideoCall/VideoCallButton';
 import useWebRTC from './Call/useWebRTC';
 import AudioCallButton from './Call/AudioCallButton';
 import toast from 'react-hot-toast';
+import CustomEmojiPicker from './Emoji/CustomEmojiPicker';
+
+
 
 const MessagePage = () => {
   const params = useParams();
@@ -39,6 +42,8 @@ const MessagePage = () => {
   const [calling, setCalling] = useState(false);
   const [showReceiverModal, setShowReceiverModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (socketConnection) {
@@ -56,6 +61,7 @@ const MessagePage = () => {
       socketConnection.on('incoming-call', (data) => {
         setIncomingCall(data);
         setShowReceiverModal(true);
+        toast.success('Bạn có cuộc gọi đến!');
       });
 
       return () => {
@@ -65,6 +71,14 @@ const MessagePage = () => {
       };
     }
   }, [socketConnection, params.userId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [allMessage, callHistory]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const handleOnChange = (e) => {
     const { name, value } = e.target;
@@ -163,6 +177,14 @@ const MessagePage = () => {
     return new Date(a.createdAt || a.time) - new Date(b.createdAt || b.time);
   });
 
+  const onEmojiClick = (e) => {
+    setMessage(prevMessage => ({
+      ...prevMessage,
+      text: prevMessage.text + e.emoji
+    }));
+  };
+
+
   return (
     <div style={{ backgroundImage: `url(${backgroundImage})` }} className='bg-no-repeat bg-cover'>
       <header className='sticky top-0 h-16 bg-white flex justify-between items-center px-4'>
@@ -187,7 +209,7 @@ const MessagePage = () => {
               socket={socketConnection}
             />
           </button>
-          <VideoCallButton  socket={socketConnection} />
+          <VideoCallButton socket={socketConnection} />
           <button className='cursor-pointer hover:text-primary mr-6'>
             <HiSearch />
           </button>
@@ -217,116 +239,100 @@ const MessagePage = () => {
               return <CallCard key={index} call={item} />;
             }
           })}
+          <div ref={messagesEndRef} />
         </div>
 
         {message.imageUrl && (
           <div className='w-full h-full sticky bottom-0 bg-slate-700 bg-opacity-30 flex justify-center items-center rounded overflow-hidden'>
             <div className='w-fit p-2 absolute top-0 right-0 cursor-pointer hover:text-red-600' onClick={handleClearUploadImage}>
-              <IoClose size={30} />
+              <IoClose size={20} />
             </div>
-            <div className='bg-white p-3'>
-              <img src={message.imageUrl} alt='Uploaded Image' className='aspect-square w-full h-full max-w-sm m-2 object-scale-down' />
-            </div>
+            <img src={message.imageUrl} alt='Upload preview' className='w-full h-full object-cover' />
           </div>
         )}
 
         {message.videoUrl && (
           <div className='w-full h-full sticky bottom-0 bg-slate-700 bg-opacity-30 flex justify-center items-center rounded overflow-hidden'>
             <div className='w-fit p-2 absolute top-0 right-0 cursor-pointer hover:text-red-600' onClick={handleClearUploadVideo}>
-              <IoClose size={30} />
+              <IoClose size={20} />
             </div>
-            <div className='bg-white p-3'>
-              <video src={message.videoUrl} className='aspect-square w-full h-full max-w-sm m-2 object-scale-down' controls muted autoPlay />
-            </div>
+            <video src={message.videoUrl} className='w-full h-full object-cover' controls autoPlay />
           </div>
         )}
       </section>
-      {loading && (
-        <div className='w-full h-full flex sticky bottom-0 justify-center items-center'>
-          <Loading />
-        </div>
-      )}
-      <section className='h-16 bg-white flex items-center px-4'>
-        <div className='relative'>
-          <button onClick={() => setOpenImageVideoUpload((prev) => !prev)} className='flex justify-center items-center w-11 h-11 rounded-full hover:bg-primary hover:text-white'>
-            <FaPlus size={20} />
-          </button>
-
-          {openImageVideoUpload && (
-            <div className='bg-white shadow rounded absolute bottom-14 w-36 p-2'>
-              <form>
-                <label htmlFor='uploadImage' className='flex items-center p-2 px-3 gap-3 hover:bg-slate-200 cursor-pointer'>
-                  <div className='text-primary'>
-                    <FaImage size={18} />
-                  </div>
-                  <p>Image</p>
-                </label>
-                <input
-                  type='file'
-                  id='uploadImage'
-                  className='hidden'
-                  onChange={handleUploadImage}
-                />
-                <label htmlFor='uploadVideo' className='flex items-center p-2 px-3 gap-3 hover:bg-slate-200 cursor-pointer'>
-                  <div className='text-primary'>
-                    <FaVideo size={18} />
-                  </div>
+      <footer className='h-16 bg-white flex justify-between items-center'>
+        <div className='w-full flex items-center'>
+          <div className='relative'>
+            <FaPlus size={20} className='cursor-pointer mx-4 hover:text-primary' onClick={() => setOpenImageVideoUpload(!openImageVideoUpload)} />
+            {openImageVideoUpload && (
+              <div className='w-fit h-fit bg-white p-4 rounded shadow-lg absolute bottom-14 left-6 flex items-center'>
+                <div className='flex flex-col items-center gap-2 cursor-pointer hover:text-primary'>
+                  <input type='file' accept='image/*' className='hidden' id='image-upload' onChange={handleUploadImage} />
+                  <label htmlFor='image-upload'>
+                    <FaImage size={20} />
+                  </label>
+                  <p>Ảnh</p>
+                </div>
+                <div className='flex flex-col items-center gap-2 ml-6 cursor-pointer hover:text-primary'>
+                  <input type='file' accept='video/*' className='hidden' id='video-upload' onChange={handleUploadVideo} />
+                  <label htmlFor='video-upload'>
+                    <FaVideo size={20} />
+                  </label>
                   <p>Video</p>
-                </label>
-                <input
-                  type='file'
-                  id='uploadVideo'
-                  className='hidden'
-                  onChange={handleUploadVideo}
-                />
-              </form>
-            </div>
-          )}
-        </div>
-        <form className='flex flex-grow mx-4' onSubmit={handleSendMessage}>
-          <input
-            type='text'
-            name='text'
-            value={message.text}
-            onChange={handleOnChange}
-            className='flex-grow p-2 border border-gray-300 rounded-l-lg focus:outline-none'
-            placeholder='Type a message...'
-          />
+                </div>
+              </div>
+            )}
+          </div>
           <button
-            type='submit'
-            className='flex items-center justify-center p-2 bg-primary text-white rounded-r-lg hover:bg-primary-dark focus:outline-none'
+            type='button'
+            className=' text-white h-full p-4 cursor-pointer'
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           >
-            <IoMdSend size={20} />
+            😊
           </button>
-        </form>
-      </section>
-
-      {calling && (
-        <div className='fixed inset-0 flex justify-center items-center bg-black bg-opacity-50'>
-          <div className='bg-white p-4 rounded-lg'>
-            <h2 className='text-lg font-semibold'>{dataUser.name} is calling...</h2>
-            <div className='flex justify-center gap-4 mt-4'>
-              <button className='bg-primary text-white p-2 rounded-lg hover:bg-primary-dark' onClick={handleToggleMic}>
-                {isMicMuted ? 'MicMuted' : 'MicUnmuted'}
+          {showEmojiPicker && <CustomEmojiPicker onEmojiClick={(e) => {
+            onEmojiClick(e)
+          }} />}
+          <form className='flex items-center w-full h-full' onSubmit={handleSendMessage}>
+            <input
+              type='text'
+              name='text'
+              placeholder='Nhập tin nhắn'
+              className='w-full outline-none border-none'
+              onChange={handleOnChange}
+              value={message.text}
+            />
+            <button type='submit' className='bg-primary text-white h-full p-4 cursor-pointer'>
+              <IoMdSend />
+            </button>
+          </form>
+        </div>
+      </footer>
+      {showReceiverModal && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center'>
+          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center'>
+            <h3 className='text-lg font-semibold mb-4'>Bạn có cuộc gọi đến từ {incomingCall?.callerName}</h3>
+            <div className='flex gap-4'>
+              <button className='bg-green-500 text-white px-4 py-2 rounded-lg' onClick={handleListen}>
+                Nghe
               </button>
-              <button className='bg-red-500 text-white p-2 rounded-lg hover:bg-red-600' onClick={handleCancelCall}>
-                Reject
+              <button className='bg-red-500 text-white px-4 py-2 rounded-lg' onClick={handleCancelCall}>
+                Hủy
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {showReceiverModal && (
-        <div className='fixed inset-0 flex justify-center items-center bg-black bg-opacity-50'>
-          <div className='bg-white p-4 rounded-lg'>
-            <h2 className='text-lg font-semibold'>Incoming Call from {dataUser.name}</h2>
-            <div className='flex justify-center gap-4 mt-4'>
-              <button className='bg-primary text-white p-2 rounded-lg hover:bg-primary-dark' onClick={handleListen}>
-                Listen
+      {calling && (
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center'>
+          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center'>
+            <h3 className='text-lg font-semibold mb-4'>Đang gọi...</h3>
+            <div className='flex gap-4'>
+              <button className='bg-red-500 text-white px-4 py-2 rounded-lg' onClick={handleStopCall}>
+                Kết thúc
               </button>
-              <button className='bg-red-500 text-white p-2 rounded-lg hover:bg-red-600' onClick={() => setShowReceiverModal(false)}>
-                Reject
+              <button className='bg-gray-500 text-white px-4 py-2 rounded-lg' onClick={handleToggleMic}>
+                {isMicMuted ? 'Bật mic' : 'Tắt mic'}
               </button>
             </div>
           </div>
