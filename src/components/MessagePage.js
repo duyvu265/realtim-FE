@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from './Avatar';
-import { HiSearch, HiDotsVertical } from 'react-icons/hi';
-import { FaAngleLeft, FaPlus, FaImage, FaVideo } from 'react-icons/fa';
+import { HiSearch, HiDotsVertical, HiMicrophone, HiMicrophoneOff } from 'react-icons/hi';
+import { FaAngleLeft, FaPlus, FaImage, FaVideo, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import uploadFile from '../helpers/uploadFile';
 import { IoClose } from 'react-icons/io5';
 import Loading from './Loading';
@@ -229,7 +229,7 @@ const MessagePage = () => {
               return (
                 <div
                   key={index}
-                  className={`p-1 py-1 rounded w-fit max-w-[280px] md:max-w-sm lg:max-w-md ${user._id === item?.msgByUserId ? 'ml-auto bg-teal-100' : 'bg-white'} whitespace-normal break-words`}
+                  className={`p-1 py-1 rounded w-fit max-w-[400px] md:max-w-lg lg:max-w-xl ${user._id === item?.msgByUserId ? 'ml-auto bg-teal-100' : 'bg-white'} whitespace-normal break-words`}
                 >
                   <div className='w-full relative'>
                     {item?.imageUrl && <img src={item?.imageUrl} className='w-full h-full object-scale-down' alt='Uploaded' />}
@@ -238,6 +238,7 @@ const MessagePage = () => {
                   <p className='px-2'>{item.text}</p>
                   <p className='text-xs ml-auto w-fit'>{moment(item.createdAt).format('hh:mm')}</p>
                 </div>
+
               );
             } else {
               return <CallCard key={index} call={item} />;
@@ -302,22 +303,24 @@ const MessagePage = () => {
               type='text'
               name='text'
               placeholder='Nhập tin nhắn'
-              className='w-full outline-none border-none'
+              className='w-full outline-none border-none pr-6'
               onChange={handleOnChange}
               value={message.text}
               maxLength={2000}
             />
-            <button type='submit' className='bg-primary text-white h-full p-4 cursor-pointer'>
+            <button type='submit' className='bg-primary text-white h-full p-4 ml-4 mr-4 cursor-pointer'>
               <IoMdSend />
             </button>
           </form>
+
         </div>
       </footer>
       {showReceiverModal && (
         <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center'>
-          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center'>
+          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center' style={{ width: '300px', height: '400px' }}>
             <h3 className='text-lg font-semibold mb-4'>Bạn có cuộc gọi đến từ {incomingCall?.callerName}</h3>
-            <div className='flex gap-4'>
+            <Avatar width={50} height={50} imageUrl={incomingCall?.callerProfilePic} name={incomingCall?.callerName} userId={incomingCall?.callerId} />
+            <div className='flex gap-4 mt-auto '>
               <button className='bg-green-500 text-white px-4 py-2 rounded-lg' onClick={handleListen}>
                 Nghe
               </button>
@@ -329,20 +332,23 @@ const MessagePage = () => {
         </div>
       )}
       {calling && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center'>
-          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center'>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center '>
+          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center' style={{ width: '300px', height: '400px' }}>
             <h3 className='text-lg font-semibold mb-4'>Đang gọi...</h3>
-            <div className='flex gap-4'>
-              <button className='bg-red-500 text-white px-4 py-2 rounded-lg' onClick={handleStopCall}>
+            <Avatar width={50} height={50} imageUrl={dataUser?.profile_pic} name={dataUser?.name} userId={dataUser?._id} />
+            <div className='flex gap-4 mt-auto'>
+              <button className='bg-red-500 text-white px-4 py-2 rounded-lg mr-5' onClick={handleStopCall}>
                 Kết thúc
               </button>
-              <button className='bg-gray-500 text-white px-4 py-2 rounded-lg' onClick={handleToggleMic}>
-                {isMicMuted ? 'Bật mic' : 'Tắt mic'}
+              <button className='bg-gray-500 text-white px-4 py-2 rounded-lg flex items-center' onClick={handleToggleMic}>
+                {isMicMuted ? <FaMicrophoneSlash size={24} /> : <FaMicrophone size={24} />}
               </button>
             </div>
           </div>
         </div>
       )}
+
+
     </div>
   );
 };

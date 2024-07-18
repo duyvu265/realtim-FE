@@ -167,13 +167,17 @@ const useWebRTC = (socket, caller, callee) => {
   };
 
   const handleToggleMic = () => {
-    setIsMicMuted((prevState) => !prevState);
-    if (localStream) {
-      localStream.getAudioTracks().forEach((track) => {
-        track.enabled = !isMicMuted;
-      });
-    }
+    setIsMicMuted((prevState) => {
+      const newMicState = !prevState;
+      if (localStream) {
+        localStream.getAudioTracks().forEach((track) => {
+          track.enabled = !newMicState;
+        });
+      }
+      return newMicState;
+    });
   };
+  
 
   return {
     localVideoRef,
