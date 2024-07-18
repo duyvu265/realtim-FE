@@ -6,16 +6,13 @@ import Avatar from './Avatar';
 import { HiSearch, HiDotsVertical } from 'react-icons/hi';
 import { FaAngleLeft } from 'react-icons/fa';
 import uploadFile from '../helpers/uploadFile';
-import { IoClose } from 'react-icons/io5';
 import Loading from './Loading';
 import backgroundImage from '../assets/wallapaper.jpeg';
-import moment from 'moment';
-import CallCard from './CallCard';
 import VideoCallButton from './VideoCall/VideoCallButton';
 import useWebRTC from './Call/useWebRTC';
 import AudioCallButton from './Call/AudioCallButton';
 import toast from 'react-hot-toast';
-import CustomEmojiPicker from './Emoji/CustomEmojiPicker';
+
 import IncomingCallModal from './CallModal/IncomingCallModal';
 import OutgoingCallModal from './CallModal/OutgoingCallModal';
 import MessagesSection from './Messages/MessagesSection';
