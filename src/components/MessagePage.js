@@ -16,6 +16,8 @@ import useWebRTC from './Call/useWebRTC';
 import AudioCallButton from './Call/AudioCallButton';
 import toast from 'react-hot-toast';
 import CustomEmojiPicker from './Emoji/CustomEmojiPicker';
+import IncomingCallModal from './CallModal/IncomingCallModal';
+import OutgoingCallModal from './CallModal/OutgoingCallModal';
 
 const MessagePage = () => {
   const params = useParams();
@@ -41,7 +43,7 @@ const MessagePage = () => {
   const [showReceiverModal, setShowReceiverModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(false); // State để theo dõi trạng thái tải tin nhắn
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ const MessagePage = () => {
 
       socketConnection.on('message', (data) => {
         setAllMessage(data);
-        setLoadingMessages(false); // Đã tải xong tin nhắn
+        setLoadingMessages(false);
       });
 
       socketConnection.on('incoming-call', (data) => {
@@ -88,7 +90,7 @@ const MessagePage = () => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.text || message.imageUrl || message.videoUrl) {
-      setLoading(true); // Bắt đầu tải tin nhắn mới
+      setLoading(true);
       if (socketConnection) {
         socketConnection.emit('new message', {
           sender: user?._id,
@@ -316,36 +318,20 @@ const MessagePage = () => {
         </div>
       </footer>
       {showReceiverModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center'>
-          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center' style={{ width: '300px', height: '400px' }}>
-            <h3 className='text-lg font-semibold mb-4'>Bạn có cuộc gọi đến từ {incomingCall?.callerName}</h3>
-            <Avatar width={50} height={50} imageUrl={incomingCall?.callerProfilePic} name={incomingCall?.callerName} userId={incomingCall?.callerId} />
-            <div className='flex gap-4 mt-auto '>
-              <button className='bg-green-500 text-white px-4 py-2 rounded-lg' onClick={handleListen}>
-                Nghe
-              </button>
-              <button className='bg-red-500 text-white px-4 py-2 rounded-lg' onClick={handleCancelCall}>
-                Hủy
-              </button>
-            </div>
-          </div>
-        </div>
+        <IncomingCallModal
+          incomingCall={incomingCall}
+          handleListen={handleListen}
+          handleCancelCall={handleCancelCall}
+        />
       )}
       {calling && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center '>
-          <div className='bg-white p-4 rounded-lg shadow-lg flex flex-col items-center' style={{ width: '300px', height: '400px' }}>
-            <h3 className='text-lg font-semibold mb-4'>Đang gọi...</h3>
-            <Avatar width={50} height={50} imageUrl={dataUser?.profile_pic} name={dataUser?.name} userId={dataUser?._id} />
-            <div className='flex gap-4 mt-auto'>
-              <button className='bg-red-500 text-white px-4 py-2 rounded-lg mr-5' onClick={handleStopCall}>
-                Kết thúc
-              </button>
-              <button className='bg-gray-500 text-white px-4 py-2 rounded-lg flex items-center' onClick={handleToggleMic}>
-                {isMicMuted ? <FaMicrophoneSlash size={24} /> : <FaMicrophone size={24} />}
-              </button>
-            </div>
-          </div>
-        </div>
+        <OutgoingCallModal
+          dataUser={dataUser}
+          calling={calling}
+          handleStopCall={handleStopCall}
+          handleToggleMic={handleToggleMic}
+          isMicMuted={isMicMuted}
+        />
       )}
 
 

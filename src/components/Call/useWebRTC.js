@@ -35,8 +35,8 @@ const useWebRTC = (socket, caller, callee) => {
   }, [socket]);
 
   const handleIncomingCall = () => {
-    setShowReceiverModal(true); // Hiển thị modal khi có cuộc gọi đến
-    setIncomingCall(true); // Đánh dấu có cuộc gọi đến
+    setShowReceiverModal(true); 
+    setIncomingCall(true); 
   };
 
   const handleCallEnded = () => {
@@ -160,7 +160,6 @@ const useWebRTC = (socket, caller, callee) => {
     if (socket && !fromRemote && callee && callee._id) {
       socket.emit('end_call', { targetUserId: callee._id });
     }
-    // Disable microphone tracks
     if (localStream) {
       localStream.getAudioTracks().forEach(track => track.enabled = false);
     }
