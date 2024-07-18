@@ -17,8 +17,6 @@ import AudioCallButton from './Call/AudioCallButton';
 import toast from 'react-hot-toast';
 import CustomEmojiPicker from './Emoji/CustomEmojiPicker';
 
-
-
 const MessagePage = () => {
   const params = useParams();
   const socketConnection = useSelector((state) => state?.user?.socketConnection);
@@ -43,6 +41,7 @@ const MessagePage = () => {
   const [showReceiverModal, setShowReceiverModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false); // State để theo dõi trạng thái tải tin nhắn
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -56,6 +55,7 @@ const MessagePage = () => {
 
       socketConnection.on('message', (data) => {
         setAllMessage(data);
+        setLoadingMessages(false); // Đã tải xong tin nhắn
       });
 
       socketConnection.on('incoming-call', (data) => {
@@ -88,6 +88,7 @@ const MessagePage = () => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.text || message.imageUrl || message.videoUrl) {
+      setLoading(true); // Bắt đầu tải tin nhắn mới
       if (socketConnection) {
         socketConnection.emit('new message', {
           sender: user?._id,
@@ -184,6 +185,9 @@ const MessagePage = () => {
     }));
   };
 
+  if (loadingMessages) {
+    return <Loading />;
+  }
 
   return (
     <div style={{ backgroundImage: `url(${backgroundImage})` }} className='bg-no-repeat bg-cover'>
@@ -225,7 +229,7 @@ const MessagePage = () => {
               return (
                 <div
                   key={index}
-                  className={`p-1 py-1 rounded w-fit max-w-[280px] md:max-w-sm lg:max-w-md ${user._id === item?.msgByUserId ? 'ml-auto bg-teal-100' : 'bg-white'}`}
+                  className={`p-1 py-1 rounded w-fit max-w-[280px] md:max-w-sm lg:max-w-md ${user._id === item?.msgByUserId ? 'ml-auto bg-teal-100' : 'bg-white'} whitespace-normal break-words`}
                 >
                   <div className='w-full relative'>
                     {item?.imageUrl && <img src={item?.imageUrl} className='w-full h-full object-scale-down' alt='Uploaded' />}
@@ -301,6 +305,7 @@ const MessagePage = () => {
               className='w-full outline-none border-none'
               onChange={handleOnChange}
               value={message.text}
+              maxLength={2000}
             />
             <button type='submit' className='bg-primary text-white h-full p-4 cursor-pointer'>
               <IoMdSend />
