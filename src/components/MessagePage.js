@@ -1,23 +1,25 @@
-// MessagePage.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from './Avatar';
 import { HiSearch, HiDotsVertical } from 'react-icons/hi';
 import { FaAngleLeft } from 'react-icons/fa';
 import uploadFile from '../helpers/uploadFile';
+import { IoClose } from 'react-icons/io5';
 import Loading from './Loading';
 import backgroundImage from '../assets/wallapaper.jpeg';
+import moment from 'moment';
+import CallCard from './CallCard';
 import VideoCallButton from './VideoCall/VideoCallButton';
 import useWebRTC from './Call/useWebRTC';
 import AudioCallButton from './Call/AudioCallButton';
 import toast from 'react-hot-toast';
-
+import CustomEmojiPicker from './Emoji/CustomEmojiPicker';
 import IncomingCallModal from './CallModal/IncomingCallModal';
 import OutgoingCallModal from './CallModal/OutgoingCallModal';
-import MessagesSection from './Messages/MessagesSection';
 import MessagesFooter from './Messages/MessagesFooter';
-
+import MessagesSection from './Messages/MessagesSection';
+import SearchMessages from './Messages/MessageSearch';
 
 const MessagePage = () => {
   const params = useParams();
@@ -44,6 +46,7 @@ const MessagePage = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [showSearch, setShowSearch] = useState(false); // State for showing SearchMessages component
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -173,10 +176,17 @@ const MessagePage = () => {
     return new Date(a.createdAt || a.time) - new Date(b.createdAt || b.time);
   });
 
+  const handleSearchMessages = (searchTerm) => {
+    const filteredMessages = combinedMessages.filter((message) =>
+      message.text.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setAllMessage(filteredMessages);
+  };
+
   const onEmojiClick = (e) => {
-    setMessage((prevMessage) => ({
+    setMessage(prevMessage => ({
       ...prevMessage,
-      text: prevMessage.text + e.emoji,
+      text: prevMessage.text + e.emoji
     }));
   };
 
@@ -199,8 +209,8 @@ const MessagePage = () => {
             <p className='-my-2 text-sm'>{dataUser.online ? <span className='text-primary'>online</span> : <span className='text-slate-400'>offline</span>}</p>
           </div>
         </div>
-
         <div>
+          <SearchMessages />
           <button className='cursor-pointer hover:text-primary mr-6'>
             <AudioCallButton
               onStartCall={handleStartCall}
@@ -210,22 +220,28 @@ const MessagePage = () => {
           </button>
           <VideoCallButton socket={socketConnection} />
           <button className='cursor-pointer hover:text-primary mr-6'>
-            <HiSearch />
-          </button>
-          <button className='cursor-pointer hover:text-primary mr-6'>
             <HiDotsVertical />
           </button>
         </div>
       </header>
 
-      <MessagesSection
-        combinedMessages={combinedMessages}
-        user={user}
-        messagesEndRef={messagesEndRef}
-        message={message}
-        handleClearUploadImage={handleClearUploadImage}
-        handleClearUploadVideo={handleClearUploadVideo}
-      />
+      {showSearch && (
+        <SearchMessages
+          handleSearch={handleSearchMessages}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+
+      <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
+        <MessagesSection
+          combinedMessages={combinedMessages}
+          user={user}
+          messagesEndRef={messagesEndRef}
+          message={message}
+          handleClearUploadImage={handleClearUploadImage}
+          handleClearUploadVideo={handleClearUploadVideo}
+        />
+      </section>
 
       <MessagesFooter
         openImageVideoUpload={openImageVideoUpload}
@@ -249,8 +265,8 @@ const MessagePage = () => {
       )}
       {calling && (
         <OutgoingCallModal
+          user={user}
           dataUser={dataUser}
-          calling={calling}
           handleStopCall={handleStopCall}
           handleToggleMic={handleToggleMic}
           isMicMuted={isMicMuted}

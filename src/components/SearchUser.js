@@ -36,7 +36,6 @@ const SearchUser = ({onClose}) => {
   return (
     <div className='fixed top-0 bottom-0 left-0 right-0 bg-slate-700 bg-opacity-40 p-2 z-10'>
         <div className='w-full max-w-lg mx-auto mt-10'>
-            {/**input search user */}
             <div className='bg-white rounded h-14 overflow-hidden flex '>
                 <input 
                     type='text'
@@ -50,9 +49,7 @@ const SearchUser = ({onClose}) => {
                 </div>
             </div>
 
-            {/**display search user */}
             <div className='bg-white mt-2 w-full p-4 rounded h-full max-h-[70vh] overflow-scroll'>
-                {/**no user found */}
                 {
                     searchUser.length === 0 && !loading && (
                         <p className='text-center text-slate-500'>no user found!</p>
