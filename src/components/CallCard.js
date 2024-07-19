@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import { HiPhoneOutgoing, HiVideoCamera } from "react-icons/hi";
+import { HiPhoneOutgoing, HiVideoCamera } from 'react-icons/hi';
 
 const CallCard = ({ call }) => {
   return (

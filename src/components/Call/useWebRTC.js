@@ -1,6 +1,7 @@
+// useWebRTC.js
 import { useState, useEffect, useRef } from 'react';
 
-const useWebRTC = (socket, caller, callee) => {
+const useWebRTC = (socket, caller, dataUser) => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [rtcPeerConnection, setRtcPeerConnection] = useState(null);
@@ -35,8 +36,9 @@ const useWebRTC = (socket, caller, callee) => {
   }, [socket]);
 
   const handleIncomingCall = () => {
-    setShowReceiverModal(true); 
-    setIncomingCall(true); 
+    console.log("Incoming call");
+    setShowReceiverModal(true);
+    setIncomingCall(true);
   };
 
   const handleCallEnded = () => {
@@ -69,10 +71,10 @@ const useWebRTC = (socket, caller, callee) => {
 
   const handleIceCandidate = (candidate) => {
     if (rtcPeerConnection) {
-      if (callee && callee._id) {
+      if (dataUser && dataUser._id) {
         rtcPeerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       } else {
-        console.error('Callee information is missing');
+        console.error('DataUser information is missing');
       }
     }
   };
@@ -86,10 +88,10 @@ const useWebRTC = (socket, caller, callee) => {
 
   const handleICECandidate = (event) => {
     if (event.candidate) {
-      if (callee && callee._id) {
-        socket.emit('ice_candidate', { targetUserId: callee._id, candidateData: event.candidate });
+      if (dataUser && dataUser._id) {
+        socket.emit('ice_candidate', { targetUserId: dataUser._id, candidateData: event.candidate });
       } else {
-        console.error('Callee information is missing');
+        console.error('DataUser information is missing');
       }
     }
   };
@@ -103,6 +105,11 @@ const useWebRTC = (socket, caller, callee) => {
 
   const startCall = async () => {
     try {
+      if (!dataUser || !dataUser._id) {
+        console.error('DataUser information is missing');
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setLocalStream(stream);
       if (localVideoRef.current) {
@@ -112,12 +119,7 @@ const useWebRTC = (socket, caller, callee) => {
       stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      if (callee && callee._id) {
-        socket.emit('start_call', { targetUserId: callee._id, offerData: offer });
-        console.log(callee._id, "start_call");
-      } else {
-        console.error('Callee information is missing');
-      }
+      socket.emit('start_call', { targetUserId: dataUser._id, offerData: offer });
       setRtcPeerConnection(peerConnection);
       setCalling(true);
     } catch (error) {
@@ -157,8 +159,8 @@ const useWebRTC = (socket, caller, callee) => {
     setCallAccepted(false);
     setIncomingCall(false);
     setShowReceiverModal(false);
-    if (socket && !fromRemote && callee && callee._id) {
-      socket.emit('end_call', { targetUserId: callee._id });
+    if (socket && !fromRemote && dataUser && dataUser._id) {
+      socket.emit('end_call', { targetUserId: dataUser._id });
     }
     if (localStream) {
       localStream.getAudioTracks().forEach(track => track.enabled = false);
@@ -176,7 +178,6 @@ const useWebRTC = (socket, caller, callee) => {
       return newMicState;
     });
   };
-  
 
   return {
     localVideoRef,

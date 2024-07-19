@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import moment from 'moment';
 import { IoClose } from 'react-icons/io5';
 import CallCard from '../CallCard';
-import Loading from '../Loading'; // Import Loading component
+import Loading from '../Loading';
 
 const MessagesSection = ({
   combinedMessages,
@@ -11,7 +11,7 @@ const MessagesSection = ({
   message,
   handleClearUploadImage,
   handleClearUploadVideo,
-  loadingMessages, // Add loadingMessages prop
+  loadingMessages,
 }) => {
   useEffect(() => {
     if (!loadingMessages) {
@@ -25,7 +25,7 @@ const MessagesSection = ({
 
   return (
     <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
-      {loadingMessages ? ( // Show loading indicator if loadingMessages is true
+      {loadingMessages ? (
         <Loading />
       ) : (
         <div className='flex flex-col gap-2 py-2 mx-2'>

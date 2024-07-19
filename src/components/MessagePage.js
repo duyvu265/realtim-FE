@@ -1,16 +1,14 @@
-// MessagePage.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, useParams } from 'react-router-dom';
 import Avatar from './Avatar';
-import { HiDotsVertical, HiSearch } from 'react-icons/hi';
+import { HiDotsVertical, HiPhoneOutgoing, HiSearch } from 'react-icons/hi';
 import { FaAngleLeft } from 'react-icons/fa';
 import uploadFile from '../helpers/uploadFile';
 import Loading from './Loading';
 import backgroundImage from '../assets/wallapaper.jpeg';
 import VideoCallButton from './VideoCall/VideoCallButton';
 import useWebRTC from './Call/useWebRTC';
-import AudioCallButton from './Call/AudioCallButton';
 import IncomingCallModal from './CallModal/IncomingCallModal';
 import OutgoingCallModal from './CallModal/OutgoingCallModal';
 import MessagesFooter from './Messages/MessagesFooter';
@@ -18,6 +16,7 @@ import MessagesSection from './Messages/MessagesSection';
 import SearchMessages from './Messages/MessageSearch';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import CallCard from './CallCard';
 
 const MessagePage = () => {
   const params = useParams();
@@ -38,15 +37,21 @@ const MessagePage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [allMessage, setAllMessage] = useState([]);
-  const [originalMessages, setOriginalMessages] = useState([]); // State to store original messages
-  const [callHistory, setCallHistory] = useState([]);
+  const [originalMessages, setOriginalMessages] = useState([]);
   const [calling, setCalling] = useState(false);
   const [showReceiverModal, setShowReceiverModal] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(true);
-  const [showSearch, setShowSearch] = useState(false); // State for showing SearchMessages component
+  const [showSearch, setShowSearch] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const {
+    startCall,
+    endCall,
+    handleToggleMic,
+    isMicMuted,
+  } = useWebRTC(socketConnection, user, dataUser);
 
   useEffect(() => {
     if (socketConnection) {
@@ -59,11 +64,12 @@ const MessagePage = () => {
 
       socketConnection.on('message', (data) => {
         setAllMessage(data);
-        setOriginalMessages(data); // Initialize original messages
+        setOriginalMessages(data);
         setLoadingMessages(false);
       });
 
       socketConnection.on('incoming-call', (data) => {
+        console.log('Received incoming call:', data);
         setIncomingCall(data);
         setShowReceiverModal(true);
         toast.success('Bạn có cuộc gọi đến!');
@@ -79,7 +85,7 @@ const MessagePage = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [allMessage, callHistory]);
+  }, [allMessage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,14 +152,8 @@ const MessagePage = () => {
     }
   };
 
-  const {
-    startCall,
-    endCall,
-    handleToggleMic,
-    isMicMuted,
-  } = useWebRTC(socketConnection, user, dataUser);
-
   const handleStartCall = () => {
+    console.log('Starting call with caller :' + user.name, " to recipient" + dataUser.name);
     setCalling(true);
     startCall();
   };
@@ -163,28 +163,26 @@ const MessagePage = () => {
     endCall();
   };
 
-  const handleCancelCall = () => {
-    setCalling(false);
-    endCall();
-  };
-
   const handleListen = () => {
+    console.log('Handling incoming call...');
     setShowReceiverModal(false);
   };
 
-  const combinedMessages = [...allMessage, ...callHistory].sort((a, b) => {
-    return new Date(a.createdAt || a.time) - new Date(b.createdAt || b.time);
-  });
-
+  const handleCancelCall = () => {
+    console.log('Canceling incoming call...');
+    setCalling(false);
+    endCall();
+    setShowReceiverModal(false);
+  };
 
   const handleSearchMessages = async (searchTerm) => {
-    const URL = `${process.env.REACT_APP_BACKEND_URL}/api/search-messages`; // Construct API URL
+    const URL = `${process.env.REACT_APP_BACKEND_URL}/api/search-messages`;
     try {
       const response = await axios.post(URL, {
-        searchTerm: searchTerm, // Pass searchTerm in the request body
+        searchTerm: searchTerm,
       });
       if (response.status === 200) {
-        setAllMessage(response.data.messages); // Update state with messages from response
+        setAllMessage(response.data.messages);
       } else {
         throw new Error('Không thể tìm kiếm tin nhắn.');
       }
@@ -193,7 +191,6 @@ const MessagePage = () => {
       toast.error('Đã xảy ra lỗi khi tìm kiếm tin nhắn.');
     }
   };
-
 
   const onEmojiClick = (e) => {
     setMessage(prevMessage => ({
@@ -223,12 +220,8 @@ const MessagePage = () => {
         </div>
         <div>
           <button className='cursor-pointer hover:text-primary mr-6'>
-            <AudioCallButton
-              size={25}
-              onStartCall={handleStartCall}
-              onStopCall={handleStopCall}
-              socket={socketConnection}
-            />
+            <HiPhoneOutgoing onClick={handleStartCall} />
+
           </button>
           <VideoCallButton socket={socketConnection} />
           <button className='cursor-pointer hover:text-primary mr-6' onClick={() => setShowSearch(true)}>
@@ -242,13 +235,14 @@ const MessagePage = () => {
 
       <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
         <MessagesSection
-          combinedMessages={combinedMessages}
+          combinedMessages={allMessage}
           user={user}
           messagesEndRef={messagesEndRef}
           message={message}
           handleClearUploadImage={handleClearUploadImage}
           handleClearUploadVideo={handleClearUploadVideo}
           loadingMessages={loadingMessages}
+          CallCard={CallCard} // Pass CallCard component as prop
         />
       </section>
 
@@ -285,7 +279,7 @@ const MessagePage = () => {
       {showSearch && (
         <SearchMessages
           handleSearchMessages={handleSearchMessages}
-          setShowSearch={setShowSearch} // Pass setShowSearch to SearchMessages component
+          setShowSearch={setShowSearch}
         />
       )}
     </div>
