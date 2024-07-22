@@ -113,18 +113,19 @@ const Sidebar = () => {
                     }
                     {
                         allUser.map((conv, index) => {
+                            const isCurrentUser = conv?.userDetails?._id === user?._id; 
                             return (
                                 <NavLink to={"/" + conv?.userDetails?._id} key={conv?._id} className='flex items-center gap-2 py-3 px-2 border border-transparent hover:border-primary rounded hover:bg-slate-100 cursor-pointer'>
                                     <div>
                                         <Avatar
                                             imageUrl={conv?.userDetails?.profile_pic}
-                                            name={conv?.userDetails?.name}
+                                            name={isCurrentUser ? "Bản Thân" : conv?.userDetails?.name} 
                                             width={40}
                                             height={40}
                                         />
                                     </div>
                                     <div>
-                                        <h3 className='text-ellipsis line-clamp-1 font-semibold text-base'>{conv?.userDetails?.name}</h3>
+                                        <h3 className='text-ellipsis line-clamp-1 font-semibold text-base'>{isCurrentUser ? "Tôi ❤️" : conv?.userDetails?.name}</h3>
                                         <div className='text-slate-500 text-xs flex items-center gap-1'>
                                             <div className='flex items-center gap-1'>
                                                 {
@@ -160,6 +161,7 @@ const Sidebar = () => {
                             )
                         })
                     }
+
 
                 </div>
             </div>

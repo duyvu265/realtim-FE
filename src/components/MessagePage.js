@@ -17,6 +17,7 @@ import SearchMessages from './Messages/MessageSearch';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import CallCard from './CallCard';
+import MatchedMessages from './Messages/MatchedMessages';
 
 const MessagePage = () => {
   const params = useParams();
@@ -45,7 +46,7 @@ const MessagePage = () => {
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const messagesEndRef = useRef(null);
-
+  const [searchedMessages, setSearchedMessages] = useState([]);
   const {
     startCall,
     endCall,
@@ -177,12 +178,18 @@ const MessagePage = () => {
 
   const handleSearchMessages = async (searchTerm) => {
     const URL = `${process.env.REACT_APP_BACKEND_URL}/api/search-messages`;
+    const currentUserId = user._id;
+    const receiverUserId = dataUser._id;
+    const data = {
+      currentUserId: currentUserId,
+      receiverUserId: receiverUserId,
+      searchTerm: searchTerm,
+    };
+
     try {
-      const response = await axios.post(URL, {
-        searchTerm: searchTerm,
-      });
+      const response = await axios.post(URL, data);
       if (response.status === 200) {
-        setAllMessage(response.data.messages);
+        setSearchedMessages(response.data.messages);
       } else {
         throw new Error('Không thể tìm kiếm tin nhắn.');
       }
@@ -221,7 +228,6 @@ const MessagePage = () => {
         <div>
           <button className='cursor-pointer hover:text-primary mr-6'>
             <HiPhoneOutgoing onClick={handleStartCall} />
-
           </button>
           <VideoCallButton socket={socketConnection} />
           <button className='cursor-pointer hover:text-primary mr-6' onClick={() => setShowSearch(true)}>
@@ -234,16 +240,20 @@ const MessagePage = () => {
       </header>
 
       <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
-        <MessagesSection
-          combinedMessages={allMessage}
-          user={user}
-          messagesEndRef={messagesEndRef}
-          message={message}
-          handleClearUploadImage={handleClearUploadImage}
-          handleClearUploadVideo={handleClearUploadVideo}
-          loadingMessages={loadingMessages}
-          CallCard={CallCard} // Pass CallCard component as prop
-        />
+      {searchedMessages?.length > 0 ? (
+          <MatchedMessages messages={searchedMessages} currentUserId={user._id} receiverUserId={dataUser._id} />
+        ) : (
+          <MessagesSection
+            combinedMessages={allMessage}
+            user={user}
+            messagesEndRef={messagesEndRef}
+            message={message}
+            handleClearUploadImage={handleClearUploadImage}
+            handleClearUploadVideo={handleClearUploadVideo}
+            loadingMessages={loadingMessages}
+            CallCard={CallCard}
+          />
+        )}
       </section>
 
       <MessagesFooter
@@ -266,6 +276,7 @@ const MessagePage = () => {
           handleCancelCall={handleCancelCall}
         />
       )}
+
       {calling && (
         <OutgoingCallModal
           user={user}

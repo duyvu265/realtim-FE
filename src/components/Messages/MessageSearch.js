@@ -14,13 +14,12 @@ const SearchMessages = ({ handleSearchMessages, setShowSearch }) => {
   };
 
   const handleClose = () => {
-    setShowSearch(false); // Ẩn form khi click vào nút X
+    setShowSearch(false); 
   };
 
   const handleClickOutside = (e) => {
-    // Kiểm tra xem người dùng có click ra ngoài form không
     if (!e.target.closest('.bg-black')) {
-      setShowSearch(false); // Ẩn form khi click ra ngoài
+      setShowSearch(false); 
     }
   };
 

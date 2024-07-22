@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
 import { IoClose } from 'react-icons/io5';
 import CallCard from '../CallCard';
 import Loading from '../Loading';
+import MatchedMessages from './MatchedMessages';
 
 const MessagesSection = ({
   combinedMessages,
@@ -12,6 +13,7 @@ const MessagesSection = ({
   handleClearUploadImage,
   handleClearUploadVideo,
   loadingMessages,
+  matchedMessages,
 }) => {
   useEffect(() => {
     if (!loadingMessages) {
@@ -22,6 +24,10 @@ const MessagesSection = ({
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  if (matchedMessages && matchedMessages.length > 0) {
+    return <MatchedMessages messages={matchedMessages} currentUser={user} />;
+  }
 
   return (
     <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
