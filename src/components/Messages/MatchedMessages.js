@@ -11,7 +11,6 @@ const MatchedMessages = ({ messages, currentUserId }) => {
       <h4 className="font-semibold mb-4">Tin nhắn tìm được:</h4>
       <div className="flex flex-col gap-2">
         {messages.map((msg) => {
-          // Xác định xem tin nhắn này có phải của người dùng hiện tại không
           const isSender = msg.sender._id.toString() === currentUserId.toString();
 
           return (
@@ -20,9 +19,8 @@ const MatchedMessages = ({ messages, currentUserId }) => {
               className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`p-2 rounded max-w-[400px] md:max-w-lg lg:max-w-xl ${
-                  isSender ? 'bg-teal-100' : 'bg-white'
-                } whitespace-normal break-words border-b`}
+                className={`p-2 rounded max-w-[400px] md:max-w-lg lg:max-w-xl ${isSender ? 'bg-teal-100' : 'bg-white'
+                  } whitespace-normal break-words border-b`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   {!isSender && (
@@ -52,7 +50,9 @@ const MatchedMessages = ({ messages, currentUserId }) => {
                   )}
                 </div>
                 <p className="px-2">{msg.message.text || 'Nội dung không có'}</p>
-                <p className="text-xs ml-auto w-fit">{moment(msg.message.createdAt).format('hh:mm')}</p>
+                <p className="text-xs ml-auto w-fit">
+                  {moment(msg.message.createdAt).format('DD/MM/YYYY HH:mm')}
+                </p>
               </div>
             </div>
           );
