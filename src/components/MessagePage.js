@@ -13,11 +13,11 @@ import IncomingCallModal from './CallModal/IncomingCallModal';
 import OutgoingCallModal from './CallModal/OutgoingCallModal';
 import MessagesFooter from './Messages/MessagesFooter';
 import MessagesSection from './Messages/MessagesSection';
-import SearchMessages from './Messages/MessageSearch';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import CallCard from './CallCard';
 import MatchedMessages from './Messages/MatchedMessages';
+import SearchMessages from './Messages/MessageSearch';
 
 const MessagePage = () => {
   const params = useParams();
@@ -217,7 +217,7 @@ const MessagePage = () => {
 
   return (
     <div style={{ backgroundImage: `url(${backgroundImage})` }} className='bg-no-repeat bg-cover'>
-      <header className='sticky top-0 h-16 bg-white flex justify-between items-center px-4'>
+           <header className='sticky top-0 h-16 bg-white flex justify-between items-center px-4'>
         <div className='flex items-center gap-4'>
           <Link to={'/'} className='lg:hidden'>
             <FaAngleLeft size={25} />
