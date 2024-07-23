@@ -185,7 +185,7 @@ const MessagePage = () => {
       receiverUserId: receiverUserId,
       searchTerm: searchTerm,
     };
-
+    console.log("data",data);
     try {
       const response = await axios.post(URL, data);
       if (response.status === 200) {
@@ -240,7 +240,7 @@ const MessagePage = () => {
       </header>
 
       <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
-      {searchedMessages?.length > 0 ? (
+        {searchedMessages?.length > 0 ? (
           <MatchedMessages messages={searchedMessages} currentUserId={user._id} receiverUserId={dataUser._id} />
         ) : (
           <MessagesSection
