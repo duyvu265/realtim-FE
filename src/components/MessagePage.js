@@ -45,8 +45,8 @@ const MessagePage = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
-  const messagesEndRef = useRef(null);
   const [searchedMessages, setSearchedMessages] = useState([]);
+  const messagesEndRef = useRef(null);
   const {
     startCall,
     endCall,
@@ -206,6 +206,11 @@ const MessagePage = () => {
     }));
   };
 
+  const handleCloseSearch = () => {
+    setShowSearch(false);
+    setSearchedMessages([]);
+  };
+
   if (loadingMessages) {
     return <Loading />;
   }
@@ -240,8 +245,12 @@ const MessagePage = () => {
       </header>
 
       <section className='h-[calc(100vh-128px)] overflow-x-hidden overflow-y-scroll scrollbar relative bg-slate-200 bg-opacity-50'>
-        {searchedMessages?.length > 0 ? (
-          <MatchedMessages messages={searchedMessages} currentUserId={user._id} receiverUserId={dataUser._id} />
+        {searchedMessages.length > 0 ? (
+          <MatchedMessages 
+            messages={searchedMessages} 
+            currentUserId={user._id} 
+            onClose={handleCloseSearch} 
+          />
         ) : (
           <MessagesSection
             combinedMessages={allMessage}
